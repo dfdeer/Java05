@@ -1,0 +1,33 @@
+# VS Code
+.vscode/
+*.code-workspace
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*sln.docstates
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# Java Common
+*.class
+*.jar
+*.war
+*.ear
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Log / Temp Files
+*.Log
+*.tmp
+*.temp
