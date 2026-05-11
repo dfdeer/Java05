@@ -33,7 +33,7 @@ Java를 활용한 콘솔 기반 은행 입출금 시스템 구현
 - IDE : Visual Studio Code(VSCode), Eclipse
 - Version Control : GitHub
 - 협업 도구 : 생성형 AI
-- 데이터 저장 방식 : ArrayList
+- 데이터 저장 방식 : Class(AccountManager etc.)
 - 운영 방식 : Console Application
 
 
