@@ -37,23 +37,26 @@
 
 ---
 
-## 🏗 시스템 구조 (System Architecture)
-
 ### 📂 패키지 및 클래스 구조
+```
 src/
 ├── main/
-│   ├── Main.java              # 프로그램 실행 진입점
-│   └── BankSystem.java        # 메뉴 출력 및 흐름 제어
+│   ├── Main.java                   # 프로그램 실행 진입점
+│   └── BankSystem.java             # 메뉴 출력 및 흐름 제어
 ├── account/
-│   ├── User.java              # 사용자 정보 정의
-│   ├── Account.java           # 계좌 정보 및 잔액 관리
-│   └── AccountManager.java    # 회원가입, 로그인, 계좌 생성
+│   ├── UserAccount.java            # 사용자 정보 정의
+│   ├── BankAccount.java            # 계좌 정보 및 잔액 관리
+│   ├── UserAccountManager.java     # 회원가입, 로그인, 계정 관리
+│   ├── BankAccountManager.java     # 계좌 생성, 삭제, 선택
+│   └── BankList.java               # 은행 목록 (enum)
 └── transaction/
-├── Transaction.java        # 거래 내역 기록
-├── Interest.java           # 이자율 계산 로직
-└── TransactionManager.java # 입금, 출금, 송금 처리
+    ├── Transaction.java             # 거래 내역 기록
+    ├── Interest.java                # 이자율 계산 로직
+    └── TransactionManager.java      # 입금, 출금, 송금 처리
+```
 
 ### 🗺 메뉴 구조
+```
 메인 메뉴
 ├── 회원가입
 ├── 로그인
@@ -66,6 +69,7 @@ src/
 ├── 거래 내역
 ├── 이자 계산
 └── 로그아웃
+```
 
 ---
 
@@ -104,12 +108,15 @@ src/
 원활한 협업을 위해 아래 규칙에 맞춰 커밋 메시지를 작성합니다.
 
 ### 커밋 메시지 형식
+```
 예)
 [Add] Account Manager
+
 계정 관리 기능 추가
 - 계정 생성, 수정 및 제거
 - 로그인, 로그아웃
 - ...
+```
 
 ### Type 종류
 | Type | Description |
