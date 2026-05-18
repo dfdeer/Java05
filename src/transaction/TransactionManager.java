@@ -60,10 +60,14 @@ public class TransactionManager {
 		);
 
 		// 송금 기록 저장
+		String transferMemo = memo == null ? "" : memo.trim();
 		Transaction transaction = new Transaction(
 			"송금",
 			amount,
-			fromAccount.getBalance()
+			fromAccount.getBalance(),
+			fromAccount.getAccountNumber(),
+			toAccount.getAccountNumber(),
+			transferMemo
 		);
 
 		transactionList.add(transaction);
