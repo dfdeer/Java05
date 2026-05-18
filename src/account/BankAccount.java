@@ -33,4 +33,9 @@ public class BankAccount {
 	public int getBalance() {
 		return balance;
 	}
+	
+	// 잔액 수정
+	public void setBalance(int inBalance) {
+		balance = inBalance;
+	}
 }
