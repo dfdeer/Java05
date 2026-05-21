@@ -9,9 +9,37 @@ public class TransactionManager {
 	private ArrayList<Transaction> transactionList = new ArrayList<>();
 
 	// 입금
-	void Deposit() {
+    public boolean Deposit(BankAccount account, int amount) {
+        
+        // 1. 입력값 검증
+        if (account == null || amount <= 0) {
+            System.out.println("잘못된 입력입니다. 입금 금액은 1원 이상이어야 합니다.");
+            return false;
+        }
 
-	}
+        // 2. 오버플로우 방지
+        long expectedBalance = account.getBalance() + amount;
+        if (expectedBalance < 0) {
+            System.out.println("계좌의 최대 보관 한도를 초과하여 입금할 수 없습니다.");
+            return false;
+        }
+
+        // 3. 잔액 증가
+        account.addBalance(amount);
+
+        // 4. 거래 기록 저장
+        Transaction transaction = new Transaction(
+            "입금", 
+            amount, 
+            account.getBalance()
+        );
+        transactionList.add(transaction);
+
+        // 5. 완료 메시지 출력
+        System.out.println("입금이 완료되었습니다. 현재 잔액: " + account.getBalance() + "원");
+        
+        return true;
+    }
 
 	// 출금
 	void WithDraw() {

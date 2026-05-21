@@ -30,11 +30,12 @@ public class BankAccount {
 		return accountNumber;
 	}
 	
-	public int getBalance() {
+	public long getBalance() {
 		return balance;
 	}
-	
-	public void setBalance(int balance) {
-		this.balance = balance;
+
+	// 클래스 내 잔액 증가 함수 추가(26.05.18), amount = "입금할 금액"
+	public void addBalance(int amount){
+		this.balance += amount;
 	}
 }

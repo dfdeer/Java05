@@ -36,7 +36,7 @@ public class Transaction {
 	public String toString() {
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 		StringBuilder builder = new StringBuilder();
-		builder.append(String.format("[s] %s |종류: %s |금액: %,d원 |잔액: %,d원", transactionDate.format(formatter), transactionType, amount, AfterBalance));
+		builder.append(String.format("[%s] |종류: %s |금액: %,d원 |잔액: %,d원", transactionDate.format(formatter), transactionType, amount, AfterBalance));
 
 		if (fromAccountNumber != null && toAccountNumber != null) {
 			builder.append(String.format(" |출금계좌: %s |입금계좌: %s", fromAccountNumber, toAccountNumber));
