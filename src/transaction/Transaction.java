@@ -7,19 +7,19 @@ public class Transaction {
 	private String transactionType;    // 거래 종류 (출금, 입금, 송금 등)
 	private long amount;    // 거래 금액
 	private LocalDateTime transactionDate;    // 거래일시
-	private long AfterBalance; // 거래 후 잔액
+	private long afterBalance; // 거래 후 잔액
 	private String fromAccountNumber; // 송금 출금 계좌 번호
 	private String toAccountNumber;   // 송금 입금 계좌 번호
 	private String memo;             // 송금 메모
 
-	public Transaction(String transactionType, long amount, long AfterBalance) {
-		this(transactionType, amount, AfterBalance, null, null, null);
+	public Transaction(String transactionType, long amount, long afterBalance) {
+		this(transactionType, amount, afterBalance, null, null, null);
 	}
 
 	public Transaction(
 		String transactionType,
 		long amount,
-		long AfterBalance,
+		long afterBalance,
 		String fromAccountNumber,
 		String toAccountNumber,
 		String memo
@@ -27,7 +27,7 @@ public class Transaction {
 		this.transactionDate = LocalDateTime.now();
 		this.transactionType = transactionType;
 		this.amount = amount;
-		this.AfterBalance = AfterBalance;
+		this.afterBalance = afterBalance;
 		this.fromAccountNumber = fromAccountNumber;
 		this.toAccountNumber = toAccountNumber;
 		this.memo = memo == null ? "" : memo;
@@ -36,7 +36,7 @@ public class Transaction {
 	public String toString() {
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 		StringBuilder builder = new StringBuilder();
-		builder.append(String.format("[%s] |종류: %s |금액: %,d원 |잔액: %,d원", transactionDate.format(formatter), transactionType, amount, AfterBalance));
+		builder.append(String.format("[%s] |종류: %s |금액: %,d원 |잔액: %,d원", transactionDate.format(formatter), transactionType, amount, afterBalance));
 
 		if (fromAccountNumber != null && toAccountNumber != null) {
 			builder.append(String.format(" |출금계좌: %s |입금계좌: %s", fromAccountNumber, toAccountNumber));

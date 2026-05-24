@@ -2,7 +2,7 @@ package account;
 
 import java.util.ArrayList;
 
-public class BankAccountmanager {
+public class BankAccountManager {
 	
 	private ArrayList<BankAccount> accountList = new ArrayList<>();	// 은행 계좌 목록 변수
 	private BankAccount currentAccount = null;
@@ -17,9 +17,9 @@ public class BankAccountmanager {
 		}
 		
 	// 계좌 생성
-	public boolean createBankAccount(String inUserId, BankList inBankName, int inBalance) {
-		String inAccountNumber = accountCounter();
-		BankAccount account = new BankAccount(inUserId, inBankName, inAccountNumber, inBalance);
+	public boolean createBankAccount(String userId, Bank bank, long balance) {
+		String accountNumber = accountCounter();
+		BankAccount account = new BankAccount(userId, bank, accountNumber, balance);
 		
 		accountList.add(account);
 		
@@ -32,9 +32,9 @@ public class BankAccountmanager {
 	}
 	
 	// 현재 계좌 선택
-	public void selectBankAccount(String inAccountNumber) {		
+	public void selectBankAccount(String accountNumber) {		
 		for (BankAccount account : accountList) {
-			if (account.getAccountNumber() == inAccountNumber) {
+			if (account.getAccountNumber().equals(accountNumber)) {
 				currentAccount = account;
 			}
 		}

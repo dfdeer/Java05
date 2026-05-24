@@ -7,43 +7,36 @@ public class UserAccount {
 	private String name;		// 이름
 	private String phoneNumber;	// 전화번호
 	
-	public UserAccount(){
-		userId = "user";
-		password = "1111";
-		name = "익명";
-		phoneNumber = "01011111111";
+	public UserAccount(String userId, String password, String name, String phoneNumber){
+		this.userId = userId;
+		this.password = password;
+		this.name = name;
+		this.phoneNumber = phoneNumber;
 	}
 	
-	public UserAccount(String inUserId, String inPassword, String inName, String inPhoneNumber){
-		userId = inUserId;
-		password = inPassword;
-		name = inName;
-		phoneNumber = inPhoneNumber;
-	}
-	
-	public void setUserId(String inUserId) {
-		userId = inUserId;
+	public void setUserId(String userId) {
+		this.userId = userId;
 	}
 	public String getUserId() {
 		return userId;
 	}
 	
-	public void setPassword(String inPassword) {
-		password = inPassword;
+	public void setPassword(String password) {
+		this.password = password;
 	}
 	public String getPassword() {
 		return password;
 	}
 	
-	public void setName(String inName) {
-		name = inName;
+	public void setName(String name) {
+		this.name = name;
 	}
 	public String getName() {
 		return name;
 	}
 	
-	public void setPhoneNumber(String inPhoneNumber) {
-		phoneNumber = inPhoneNumber;
+	public void setPhoneNumber(String phoneNumber) {
+		this.phoneNumber = phoneNumber;
 	}
 	public String getPhoneNumber() {
 		return phoneNumber;

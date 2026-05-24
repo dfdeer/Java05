@@ -9,7 +9,7 @@ public class TransactionManager {
 	private ArrayList<Transaction> transactionList = new ArrayList<>();
 
 	// 입금
-    public boolean Deposit(BankAccount account, int amount) {
+    public boolean deposit(BankAccount account, int amount) {
         
         // 1. 입력값 검증
         if (account == null || amount <= 0) {
@@ -42,7 +42,7 @@ public class TransactionManager {
     }
 
 	// 출금
-	public boolean WithDraw(BankAccount account, int amount, String passward) {
+	public boolean withdraw(BankAccount account, int amount) {
         
 
         // 입력값 검증
@@ -58,7 +58,7 @@ public class TransactionManager {
         }
 
         //잔액 차감
-        account.minusBalance(amount);
+        account.addBalance(-amount);
 
         // 거래 기록 저장
         Transaction transaction = new Transaction(
@@ -80,12 +80,10 @@ public class TransactionManager {
     }
 
 	// 송금
-	public boolean Transfer(
+	public boolean transfer(
 		BankAccount fromAccount,
 		BankAccount toAccount,
 		int amount,
-		int date,
-		String password,
 		String memo
 	) {
 
@@ -111,14 +109,10 @@ public class TransactionManager {
 		}
 
 		// 출금자 잔액 차감
-		fromAccount.setBalance(
-			fromAccount.getBalance() - amount
-		);
+		fromAccount.addBalance(-amount);
 
 		// 수취인 잔액 증가
-		toAccount.setBalance(
-			toAccount.getBalance() + amount
-		);
+		toAccount.addBalance(amount);
 
 		// 송금 기록 저장
 		String transferMemo = memo == null ? "" : memo.trim();

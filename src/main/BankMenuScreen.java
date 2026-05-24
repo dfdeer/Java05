@@ -4,10 +4,8 @@ import java.util.Scanner;
 
 public class BankMenuScreen {
     private static final String DIVIDER = "-------------------------------";
-    private final Scanner sc = new Scanner(System.in);
 
-        BankSystem bs = new BankSystem();
-    public void run() {
+    public void run(Scanner sc) {
         boolean running = true;
 
         while (running) {

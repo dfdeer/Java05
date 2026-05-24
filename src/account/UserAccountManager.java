@@ -8,9 +8,9 @@ public class UserAccountManager {
     private UserAccount currentUser = null;			// 로그인 된 현재 계좌
 
     // userId 중복 확인
-    public boolean isUserIdDuplicated(String inUserId) {
+    public boolean isUserIdDuplicated(String userId) {
         for (UserAccount user : userList) {
-            if (user.getUserId().equals(inUserId)) {
+            if (user.getUserId().equals(userId)) {
                 return true;
             }
         }
@@ -18,9 +18,9 @@ public class UserAccountManager {
     }
 
     // phoneNumber 중복 확인
-    public boolean isPhoneNumberDuplicated(String inPhoneNumber) {
+    public boolean isPhoneNumberDuplicated(String phoneNumber) {
         for (UserAccount user : userList) {
-            if (user.getPhoneNumber().equals(inPhoneNumber)) {
+            if (user.getPhoneNumber().equals(phoneNumber)) {
                 return true;
             }
         }
@@ -28,15 +28,15 @@ public class UserAccountManager {
     }
 
     // 계정 생성
-    public boolean createUserAccount(String inUserId, String inPassword, String inName, String inPhoneNumber) {
-        if (isUserIdDuplicated(inUserId)) {
+    public boolean createUserAccount(String userId, String password, String inName, String phoneNumber) {
+        if (isUserIdDuplicated(userId)) {
             return false;
         }
-        if (isPhoneNumberDuplicated(inPhoneNumber)) {
+        if (isPhoneNumberDuplicated(phoneNumber)) {
             return false;
         }
 
-        UserAccount user = new UserAccount(inUserId, inPassword, inName, inPhoneNumber);
+        UserAccount user = new UserAccount(userId, password, inName, phoneNumber);
 
         userList.add(user);
 
@@ -49,25 +49,25 @@ public class UserAccountManager {
     }
 
     // 계정 수정 (비밀번호, 이름, 전화번호)
-    public void editPassword(String newPassword) {
-        currentUser.setPassword(newPassword);
+    public void editPassword(String password) {
+        currentUser.setPassword(password);
         return;
     }
 
-    public void editName(String newName) {
-        currentUser.setName(newName);
+    public void editName(String name) {
+        currentUser.setName(name);
         return;
     }
 
-    public void editPhoneNumber(String newPhoneNumber) {
-        currentUser.setPhoneNumber(newPhoneNumber);
+    public void editPhoneNumber(String phoneNumber) {
+        currentUser.setPhoneNumber(phoneNumber);
         return;
     }
 
     // 로그인
-    public boolean login(String inUserId, String inPassword) {
+    public boolean login(String userId, String password) {
         for (UserAccount user : userList) {
-            if (user.getUserId().equals(inUserId) && user.getPassword().equals(inPassword)) {
+            if (user.getUserId().equals(userId) && user.getPassword().equals(password)) {
                 currentUser = user;
                 return true;
             }
