@@ -38,4 +38,9 @@ public class BankAccount {
 	public void addBalance(int amount){
 		this.balance += amount;
 	}
+
+	public void minusBalance(int amount) {
+   		balance -= amount;
+    }
+	
 }

@@ -42,9 +42,42 @@ public class TransactionManager {
     }
 
 	// 출금
-	void WithDraw() {
+	public boolean WithDraw(BankAccount account, int amount, String passward) {
+        
 
-	}
+        // 입력값 검증
+        if (account == null || amount <= 0) {
+            System.out.println("잘못된 입력입니다. 출금 금액은 1원 이상이어야 합니다.");
+            return false;
+        }
+
+        // 잔액 부족 확인
+        if (account.getBalance() < amount) {
+            System.out.println("잔액이 부족합니다.");
+            return false;
+        }
+
+        //잔액 차감
+        account.minusBalance(amount);
+
+        // 거래 기록 저장
+        Transaction transaction = new Transaction(
+            "출금",
+            amount,
+            account.getBalance()
+        );
+
+        transactionList.add(transaction);
+
+        // 완료 메세지 출력
+        System.out.println(
+            "출금이 완료돠었습니다. 현재 잔액 : "
+            + account.getBalance()
+            + "원"
+        );
+
+        return true;
+    }
 
 	// 송금
 	public boolean Transfer(
