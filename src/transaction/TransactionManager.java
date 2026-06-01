@@ -1,8 +1,8 @@
 package transaction;
 
-import java.util.ArrayList;
-
 import account.BankAccount;
+import account.UserAccount;
+import java.util.ArrayList;
 
 public class TransactionManager {
 
@@ -42,9 +42,37 @@ public class TransactionManager {
     }
 
 	// 출금
-	public boolean withdraw(BankAccount account, int amount) {
+	public boolean withdraw(BankAccount account, int amount, UserAccount user, String password) {
         
+        // 계좌 잠금 여부 확인
+        if (user.isLocked()) {
+            System.out.println("비밀번호 오류 5회 초과로 출금이 제한되었습니다.");
+            return false;
+        }
 
+        // 비밀번호 확인
+        if (!user.getPassword().equals(password)) {
+            // 비밀번호 실패 횟수 증가
+            user.setPasswordFailCount(user.getPasswordFailCount() + 1);
+
+            System.out.println("비밀번호가 일치하지 않습니다.");
+
+            // 남은 비밀번호 시도 횟수 계산
+            int remainCount = 5 - user.getPasswordFailCount();
+
+            // 비밀번호 입력 남은 횟수 출력
+            if (remainCount > 0) {
+                System.out.println("남은 시도 횟수 : " + remainCount);
+            }
+
+             // 비밀번호 5회 이상 틀릴 시 계좌 잠금 처리
+            if (user.getPasswordFailCount() >= 5) {
+                user.setLocked(true);
+                System.out.println("비밀번호 오류 5회로 출금이 제한되었습니다.");
+            }
+            return false;
+        }
+        
         // 입력값 검증
         if (account == null || amount <= 0) {
             System.out.println("잘못된 입력입니다. 출금 금액은 1원 이상이어야 합니다.");
@@ -56,6 +84,10 @@ public class TransactionManager {
             System.out.println("잔액이 부족합니다.");
             return false;
         }
+
+        // 비밀번호 인증 성공 했을 때
+        // 비밀번호 실패 횟수 초기화
+        user.setPasswordFailCount(0);
 
         //잔액 차감
         account.addBalance(-amount);
@@ -71,11 +103,12 @@ public class TransactionManager {
 
         // 완료 메세지 출력
         System.out.println(
-            "출금이 완료돠었습니다. 현재 잔액 : "
+            "출금이 완료되었습니다. 현재 잔액 : "
             + account.getBalance()
             + "원"
         );
 
+        // 출금 성공
         return true;
     }
 
