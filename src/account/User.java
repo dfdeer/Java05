@@ -1,6 +1,6 @@
 package account;
 
-public class UserAccount {
+public class User {
 
 	private String userId;		// 아이디
 	private String password;	// 비밀번호
@@ -9,7 +9,7 @@ public class UserAccount {
 	private int passwordFailCount;
 	private boolean locked;
 	
-	public UserAccount(String userId, String password, String name, String phoneNumber){
+	public User(String userId, String password, String name, String phoneNumber){
 		this.userId = userId;
 		this.password = password;
 		this.name = name;

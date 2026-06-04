@@ -3,17 +3,21 @@ package main;
 import account.*;
 import java.util.Scanner;
 
-public class BankSystem {
+public class AuthSystem {
 
     private Scanner sc = null;
-    private final UserAccountManager uam = new UserAccountManager();
+    private final UserManager um;
     private boolean loggedIn = false;
     private final String DIVIDER = "-------------------------------";
 
+    public AuthSystem(UserManager um) {
+    	this.um = um;
+    }
+    
     public boolean run(Scanner sc) {
     	this.sc = sc;
     	
-        uam.createUserAccount("admin", "admin", "관리자", "01012345678");
+        um.createUserAccount("admin", "admin", "관리자", "01012345678");
         System.out.println("은행 시스템이 실행되었습니다.");
 
         sign();
@@ -56,7 +60,7 @@ public class BankSystem {
         String password = sc.nextLine().trim();
         System.out.println(DIVIDER);
 
-        if (uam.login(userId, password)) {
+        if (um.login(userId, password)) {
             System.out.println("로그인 성공!");
             System.out.println(DIVIDER);
             loggedIn = true;
@@ -87,7 +91,7 @@ public class BankSystem {
     	         System.out.println("모든 항목을 입력해주세요.");
     	         continue;
     	     } else {
-    	         if (uam.createUserAccount(userId, password, name, phoneNumber)) {
+    	         if (um.createUserAccount(userId, password, name, phoneNumber)) {
     	             System.out.println("회원가입이 완료되었습니다.");
     	             System.out.println(DIVIDER);
     	         } else {
@@ -95,6 +99,7 @@ public class BankSystem {
     	             System.out.println(DIVIDER);
     	         }
     	         printSignMain();
+    	         break;
     	     }
     	}
     }

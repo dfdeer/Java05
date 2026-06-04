@@ -1,6 +1,6 @@
 package transaction;
 
-import account.BankAccount;
+import account.Account;
 import account.Bank;
 
 public class InterestCalculator {
@@ -10,7 +10,7 @@ public class InterestCalculator {
 
     // 1년에 한 번 이자 지급
     public static void applyYearlyInterest(
-        BankAccount account,
+        Account account,
         int accountAgeYear
     ) {
 

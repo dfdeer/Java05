@@ -2,14 +2,14 @@ package account;
 
 import java.util.ArrayList;
 
-public class UserAccountManager {
+public class UserManager {
 
-    private ArrayList<UserAccount> userList = new ArrayList<>();	// 은행 계좌 목록 변수
-    private UserAccount currentUser = null;			// 로그인 된 현재 계좌
+    private ArrayList<User> userList = new ArrayList<>();	// 은행 계좌 목록 변수
+    private User currentUser = null;			// 로그인 된 현재 계좌
 
     // userId 중복 확인
     public boolean isUserIdDuplicated(String userId) {
-        for (UserAccount user : userList) {
+        for (User user : userList) {
             if (user.getUserId().equals(userId)) {
                 return true;
             }
@@ -19,7 +19,7 @@ public class UserAccountManager {
 
     // phoneNumber 중복 확인
     public boolean isPhoneNumberDuplicated(String phoneNumber) {
-        for (UserAccount user : userList) {
+        for (User user : userList) {
             if (user.getPhoneNumber().equals(phoneNumber)) {
                 return true;
             }
@@ -36,7 +36,7 @@ public class UserAccountManager {
             return false;
         }
 
-        UserAccount user = new UserAccount(userId, password, inName, phoneNumber);
+        User user = new User(userId, password, inName, phoneNumber);
 
         userList.add(user);
 
@@ -66,7 +66,7 @@ public class UserAccountManager {
 
     // 로그인
     public boolean login(String userId, String password) {
-        for (UserAccount user : userList) {
+        for (User user : userList) {
             if (user.getUserId().equals(userId) && user.getPassword().equals(password)) {
                 currentUser = user;
                 return true;
@@ -78,5 +78,9 @@ public class UserAccountManager {
     // 로그아웃
     public void logout() {
         currentUser = null;
+    }
+    
+    public User getCurrentUser() {
+    	return currentUser;
     }
 }
