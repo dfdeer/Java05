@@ -46,4 +46,32 @@ public class Transaction {
 		}
 		return builder.toString();
 	}
+	
+	public String getDate() {
+	    return transactionDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+	}
+
+	public String getType() {
+	    return transactionType;
+	}
+
+	public long getAmount() {
+	    return amount;
+	}
+
+	public long getAfterBalance() {
+	    return afterBalance;
+	}
+
+	public String getFromAccountNumber() {
+	    return fromAccountNumber;
+	}
+
+	public String getToAccountNumber() {
+	    return toAccountNumber;
+	}
+
+	public String getMemo() {
+	    return memo;
+	}
 }

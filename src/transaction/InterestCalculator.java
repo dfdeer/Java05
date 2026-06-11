@@ -27,7 +27,7 @@ public class InterestCalculator {
             rate += BONUS_RATE;
         }
 
-        long interest = (long)(balance * rate);
+        long interest = (long)(balance * rate * accountAgeYear);
         
         if (interest <= 0) return;
 

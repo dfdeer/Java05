@@ -15,7 +15,7 @@ public class Main {
         TransactionManager tm = new TransactionManager();
         
         if (authUI.run()) {
-            MainSwingUI.show(am, tm, um);
+            new MainSwingUI(am, tm, um).setVisible(true);
         }
     }
 }

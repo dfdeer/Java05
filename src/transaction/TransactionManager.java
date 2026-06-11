@@ -30,7 +30,10 @@ public class TransactionManager {
         Transaction transaction = new Transaction(
             "입금", 
             amount, 
-            account.getBalance()
+            account.getBalance(),
+            null,
+            account.getAccountNumber(),
+            null
         );
         transactionList.add(transaction);
 
@@ -51,7 +54,14 @@ public class TransactionManager {
             return false;
         }
         account.addBalance(-amount);
-        Transaction transaction = new Transaction("출금", amount, account.getBalance());
+        Transaction transaction = new Transaction(
+        	"출금",
+        	amount,
+        	account.getBalance(),
+        	account.getAccountNumber(),
+            null,
+            null
+        );
         transactionList.add(transaction);
         System.out.println("출금이 완료되었습니다. 현재 잔액: " + account.getBalance() + "원");
         return true;
@@ -94,16 +104,14 @@ public class TransactionManager {
 
 		// 송금 기록 저장
 		String transferMemo = memo == null ? "" : memo.trim();
-		Transaction transaction = new Transaction(
-			"송금",
-			amount,
-			fromAccount.getBalance(),
-			fromAccount.getAccountNumber(),
-			toAccount.getAccountNumber(),
-			transferMemo
-		);
-
-		transactionList.add(transaction);
+		transactionList.add(new Transaction(
+			    "출금", amount, fromAccount.getBalance(),
+			    fromAccount.getAccountNumber(), toAccount.getAccountNumber(), transferMemo
+			));
+			transactionList.add(new Transaction(
+			    "입금", amount, toAccount.getBalance(),
+			    fromAccount.getAccountNumber(), toAccount.getAccountNumber(), transferMemo
+			));
 
 		System.out.println("송금이 완료되었습니다.");
 
@@ -111,7 +119,13 @@ public class TransactionManager {
 	}
 
 	// 거래 기록 조회
-	public ArrayList<Transaction> getTransactionList() {
-		return transactionList;
+	public ArrayList<Transaction> getTransactionList(String accountNumber) {
+	    ArrayList<Transaction> result = new ArrayList<>();
+	    for (Transaction tx : transactionList) {
+	        if (accountNumber.equals(tx.getFromAccountNumber()) || accountNumber.equals(tx.getToAccountNumber())) {
+	            result.add(tx);
+	        }
+	    }
+	    return result;
 	}
 }

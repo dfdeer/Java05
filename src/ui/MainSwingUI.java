@@ -5,664 +5,812 @@ import account.AccountManager;
 import account.Bank;
 import account.User;
 import account.UserManager;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.util.ArrayList;
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.DefaultComboBoxModel;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTabbedPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
-import javax.swing.SwingUtilities;
-import javax.swing.table.DefaultTableModel;
 import transaction.InterestCalculator;
 import transaction.Transaction;
 import transaction.TransactionManager;
 
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.util.ArrayList;
+
 public class MainSwingUI extends JFrame {
 
-    private static final Color BACKGROUND = new Color(245, 247, 251);
-    private static final Color CARD = Color.WHITE;
-    private static final Color PRIMARY = new Color(37, 99, 235);
-    private static final Color TEXT = new Color(30, 41, 59);
-    private static final Color MUTED = new Color(100, 116, 139);
+    private static final Color SIDEBAR_BG  = new Color(245, 247, 251);
+    private static final Color PRIMARY     = new Color(24, 95, 165);
+    private static final Color TEXT        = new Color(30, 41, 59);
+    private static final Color MUTED       = new Color(100, 116, 139);
+    private static final Color BORDER      = new Color(226, 232, 240);
+    private static final Color SELECTED_BG = new Color(230, 241, 251);
 
-    private final AccountManager accountManager;
-    private final TransactionManager transactionManager;
-    private final UserManager userManager;
+    private final AccountManager am;
+    private final TransactionManager tm;
+    private final UserManager um;
 
-    private final DefaultTableModel accountTableModel = new DefaultTableModel(
-            new Object[]{"은행", "계좌번호", "잔액"}, 0
-    ) {
-        @Override
-        public boolean isCellEditable(int row, int column) {
-            return false;
-        }
-    };
+    // 카드 레이아웃
+    private CardLayout cardLayout;
+    private JPanel contentPanel;
 
-    private final DefaultTableModel transactionTableModel = new DefaultTableModel(
-            new Object[]{"거래 내역"}, 0
-    ) {
-        @Override
-        public boolean isCellEditable(int row, int column) {
-            return false;
-        }
-    };
+    // 사이드바 버튼
+    private JButton btnAccount;
+    private JButton btnTransaction;
+    private JButton btnProfile;
 
-    private JTable accountTable;
-    private JComboBox<AccountItem> sourceAccountCombo;
-    private JComboBox<AccountItem> targetAccountCombo;
-    private JLabel userTitleLabel;
-    private JLabel balanceLabel;
-    private JLabel profileLabel;
+    // 계좌 목록 패널
+    private DefaultTableModel accountTableModel;
 
-    public MainSwingUI(AccountManager accountManager, TransactionManager transactionManager, UserManager userManager) {
+    // 계좌 상세 패널
+    private JLabel detailBankLabel;
+    private JLabel detailNumberLabel;
+    private JLabel detailBalanceLabel;
+    private DefaultTableModel txTableModel;
+    private Account selectedAccount = null;
+
+    // 거래 패널
+    private JComboBox<AccountItem> depositCombo;
+    private JComboBox<AccountItem> withdrawCombo;
+    private JComboBox<AccountItem> transferFromCombo;
+    private JComboBox<AccountItem> transferToCombo;
+    private JComboBox<AccountItem> interestCombo;
+
+    // 내 정보 패널
+    private JLabel profileIdLabel;
+    private JLabel profileNameLabel;
+    private JLabel profilePhoneLabel;
+
+    public MainSwingUI(AccountManager am, TransactionManager tm, UserManager um) {
         super("Java Bank");
-        this.accountManager = accountManager;
-        this.transactionManager = transactionManager;
-        this.userManager = userManager;
+        this.am = am;
+        this.tm = tm;
+        this.um = um;
 
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setPreferredSize(new Dimension(960, 680));
-        setMinimumSize(new Dimension(900, 620));
-        setContentPane(createContent());
-        refreshAll();
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setPreferredSize(new Dimension(960, 660));
+        setMinimumSize(new Dimension(860, 580));
+
+        setContentPane(buildFrame());
         pack();
         setLocationRelativeTo(null);
+        refreshAll();
     }
 
-    public static void show(AccountManager accountManager, TransactionManager transactionManager, UserManager userManager) {
-        SwingUtilities.invokeLater(() -> new MainSwingUI(accountManager, transactionManager, userManager).setVisible(true));
+    // ── 전체 프레임 ────────────────────────────────────────
+    private JPanel buildFrame() {
+        JPanel frame = new JPanel(new BorderLayout());
+        frame.add(buildSidebar(), BorderLayout.WEST);
+
+        cardLayout = new CardLayout();
+        contentPanel = new JPanel(cardLayout);
+        contentPanel.add(buildAccountListPanel(), "account");
+        contentPanel.add(buildAccountDetailPanel(), "detail");
+        contentPanel.add(buildTransactionPanel(), "transaction");
+        contentPanel.add(buildProfilePanel(), "profile");
+        frame.add(contentPanel, BorderLayout.CENTER);
+
+        return frame;
     }
 
-    private JPanel createContent() {
-        JPanel root = new JPanel(new BorderLayout(0, 14));
-        root.setBackground(BACKGROUND);
-        root.setBorder(BorderFactory.createEmptyBorder(18, 22, 22, 22));
+    // ── 사이드바 ────────────────────────────────────────────
+    private JPanel buildSidebar() {
+        JPanel sidebar = new JPanel();
+        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
+        sidebar.setBackground(SIDEBAR_BG);
+        sidebar.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 0, 1, BORDER),
+            new EmptyBorder(20, 0, 20, 0)
+        ));
+        sidebar.setPreferredSize(new Dimension(160, 0));
 
-        root.add(createTopBar(), BorderLayout.NORTH);
+        JLabel title = new JLabel("Java Bank");
+        title.setFont(new Font("Dialog", Font.BOLD, 16));
+        title.setForeground(TEXT);
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        title.setBorder(new EmptyBorder(0, 18, 16, 18));
+        sidebar.add(title);
 
-        JTabbedPane tabs = new JTabbedPane();
-        tabs.addTab("계좌 관리", createAccountPanel());
-        tabs.addTab("거래", createTransactionPanel());
-        tabs.addTab("내 정보", createProfilePanel());
-        root.add(tabs, BorderLayout.CENTER);
+        JSeparator sep = new JSeparator();
+        sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+        sep.setForeground(BORDER);
+        sidebar.add(sep);
+        sidebar.add(Box.createVerticalStrut(8));
 
-        return root;
-    }
+        btnAccount = navButton("계좌 관리", true);
+        btnTransaction = navButton("거래", false);
+        btnProfile = navButton("내 정보", false);
 
-    private JPanel createTopBar() {
-        JPanel topBar = new JPanel(new BorderLayout());
-        topBar.setOpaque(false);
+        btnAccount.addActionListener(e -> switchPage("account"));
+        btnTransaction.addActionListener(e -> switchPage("transaction"));
+        btnProfile.addActionListener(e -> switchPage("profile"));
 
-        userTitleLabel = new JLabel();
-        userTitleLabel.setFont(new Font("Dialog", Font.BOLD, 20));
-        userTitleLabel.setForeground(TEXT);
+        sidebar.add(btnAccount);
+        sidebar.add(btnTransaction);
+        sidebar.add(btnProfile);
+        sidebar.add(Box.createVerticalGlue());
 
-        JButton logoutButton = createSecondaryButton("로그아웃");
-        logoutButton.addActionListener(e -> {
-            userManager.logout();
+        JSeparator sep2 = new JSeparator();
+        sep2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+        sep2.setForeground(BORDER);
+        sidebar.add(sep2);
+        sidebar.add(Box.createVerticalStrut(8));
+
+        JButton btnLogout = navButton("로그아웃", false);
+        btnLogout.setForeground(new Color(163, 45, 45));
+        btnLogout.addActionListener(e -> {
+            um.logout();
             dispose();
+            AuthSwingUI authUI = new AuthSwingUI(um);
+            if (authUI.run()) {
+                new MainSwingUI(am, tm, um).setVisible(true);
+            }
         });
+        sidebar.add(btnLogout);
 
-        topBar.add(userTitleLabel, BorderLayout.WEST);
-        topBar.add(logoutButton, BorderLayout.EAST);
-        return topBar;
+        return sidebar;
     }
 
-    private JPanel createAccountPanel() {
-        JPanel panel = new JPanel(new BorderLayout(14, 0));
-        panel.setOpaque(false);
-
-        JPanel tableCard = createCard();
-        tableCard.setLayout(new BorderLayout(0, 12));
-
-        accountTable = new JTable(accountTableModel);
-        accountTable.setRowHeight(28);
-        accountTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-
-        tableCard.add(sectionTitle("내 계좌"), BorderLayout.NORTH);
-        tableCard.add(new JScrollPane(accountTable), BorderLayout.CENTER);
-
-        JPanel formCard = createCard();
-        formCard.setPreferredSize(new Dimension(280, 0));
-        formCard.setLayout(new BoxLayout(formCard, BoxLayout.Y_AXIS));
-
-        JComboBox<Bank> bankCombo = new JComboBox<>(visibleBanks());
-        JTextField balanceField = createTextField();
-        JButton createButton = createPrimaryButton("계좌 생성");
-        JButton deleteButton = createSecondaryButton("선택 계좌 삭제");
-
-        formCard.add(sectionTitle("새 계좌"));
-        formCard.add(Box.createVerticalStrut(14));
-        formCard.add(fieldBlock("은행", bankCombo));
-        formCard.add(Box.createVerticalStrut(10));
-        formCard.add(fieldBlock("초기 금액", balanceField));
-        formCard.add(Box.createVerticalStrut(16));
-        formCard.add(createButton);
-        formCard.add(Box.createVerticalStrut(10));
-        formCard.add(deleteButton);
-
-        createButton.addActionListener(e -> {
-            User user = userManager.getCurrentUser();
-            long balance = parseLong(balanceField.getText(), "초기 금액");
-            Bank bank = (Bank) bankCombo.getSelectedItem();
-
-            if (user == null || balance < 0 || bank == null) {
-                return;
-            }
-
-            if (accountManager.createBankAccount(user.getUserId(), bank, balance)) {
-                balanceField.setText("");
-                refreshAll();
-                JOptionPane.showMessageDialog(this, "계좌가 생성되었습니다.");
-            } else {
-                showWarning("계좌를 생성할 수 없습니다.");
-            }
-        });
-
-        deleteButton.addActionListener(e -> {
-            int row = accountTable.getSelectedRow();
-            if (row < 0) {
-                showWarning("삭제할 계좌를 선택해 주세요.");
-                return;
-            }
-
-            String accountNumber = String.valueOf(accountTableModel.getValueAt(row, 1));
-            int result = JOptionPane.showConfirmDialog(
-                    this,
-                    accountNumber + " 계좌를 삭제할까요?",
-                    "계좌 삭제",
-                    JOptionPane.YES_NO_OPTION
-            );
-            if (result == JOptionPane.YES_OPTION && accountManager.deleteBankAccount(accountNumber)) {
-                refreshAll();
-            }
-        });
-
-        panel.add(tableCard, BorderLayout.CENTER);
-        panel.add(formCard, BorderLayout.EAST);
-        return panel;
+    private JButton navButton(String text, boolean active) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Dialog", Font.PLAIN, 13));
+        btn.setHorizontalAlignment(SwingConstants.LEFT);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        btn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBorder(new EmptyBorder(8, 18, 8, 18));
+        setNavActive(btn, active);
+        return btn;
     }
 
-    private JPanel createTransactionPanel() {
-        JPanel panel = new JPanel(new BorderLayout(14, 0));
-        panel.setOpaque(false);
-
-        JPanel actionCard = createCard();
-        actionCard.setPreferredSize(new Dimension(330, 0));
-        actionCard.setLayout(new BoxLayout(actionCard, BoxLayout.Y_AXIS));
-
-        sourceAccountCombo = new JComboBox<>();
-        targetAccountCombo = new JComboBox<>();
-        balanceLabel = new JLabel();
-        balanceLabel.setForeground(MUTED);
-
-        JTextField amountField = createTextField();
-        JTextField memoField = createTextField();
-        JTextField yearField = createTextField();
-
-        JButton depositButton = createPrimaryButton("입금");
-        JButton withdrawButton = createSecondaryButton("출금");
-        JButton transferButton = createPrimaryButton("송금");
-        JButton interestButton = createSecondaryButton("이자 적용");
-
-        sourceAccountCombo.addActionListener(e -> refreshAccountCombos(false));
-
-        actionCard.add(sectionTitle("거래 실행"));
-        actionCard.add(Box.createVerticalStrut(14));
-        actionCard.add(fieldBlock("사용 계좌", sourceAccountCombo));
-        actionCard.add(Box.createVerticalStrut(6));
-        actionCard.add(balanceLabel);
-        actionCard.add(Box.createVerticalStrut(12));
-        actionCard.add(fieldBlock("금액", amountField));
-        actionCard.add(Box.createVerticalStrut(12));
-        actionCard.add(buttonRow(depositButton, withdrawButton));
-        actionCard.add(Box.createVerticalStrut(18));
-        actionCard.add(fieldBlock("받는 계좌", targetAccountCombo));
-        actionCard.add(Box.createVerticalStrut(10));
-        actionCard.add(fieldBlock("메모", memoField));
-        actionCard.add(Box.createVerticalStrut(12));
-        actionCard.add(transferButton);
-        actionCard.add(Box.createVerticalStrut(18));
-        actionCard.add(fieldBlock("보유 기간(년)", yearField));
-        actionCard.add(Box.createVerticalStrut(10));
-        actionCard.add(interestButton);
-
-        depositButton.addActionListener(e -> runAmountTransaction(
-                amountField,
-                (account, amount) -> transactionManager.deposit(account, amount),
-                "입금에 실패했습니다."
-        ));
-
-        withdrawButton.addActionListener(e -> runAmountTransaction(
-                amountField,
-                (account, amount) -> transactionManager.withdraw(account, amount),
-                "출금에 실패했습니다. 잔액을 확인해 주세요."
-        ));
-
-        transferButton.addActionListener(e -> {
-            Account source = selectedSourceAccount();
-            Account target = selectedTargetAccount();
-            int amount = parseInt(amountField.getText(), "금액");
-
-            if (source == null) {
-                showWarning("송금할 계좌를 선택해 주세요.");
-                return;
-            }
-            if (target == null) {
-                showWarning("받는 계좌를 선택해 주세요.");
-                return;
-            }
-            if (amount <= 0) {
-                return;
-            }
-
-            if (transactionManager.transfer(source, target, amount, memoField.getText())) {
-                amountField.setText("");
-                memoField.setText("");
-                refreshAll();
-            } else {
-                showWarning("송금에 실패했습니다. 계좌와 잔액을 확인해 주세요.");
-            }
-        });
-
-        interestButton.addActionListener(e -> {
-            Account account = selectedSourceAccount();
-            int years = parseInt(yearField.getText(), "보유 기간");
-
-            if (account == null) {
-                showWarning("이자를 적용할 계좌를 선택해 주세요.");
-                return;
-            }
-            if (years < 0) {
-                return;
-            }
-
-            long before = account.getBalance();
-            InterestCalculator.applyYearlyInterest(account, years);
-            refreshAll();
-            JOptionPane.showMessageDialog(this, "적용 이자: " + formatMoney(account.getBalance() - before));
-        });
-
-        JPanel historyCard = createCard();
-        historyCard.setLayout(new BorderLayout(0, 12));
-
-        JTable transactionTable = new JTable(transactionTableModel);
-        transactionTable.setRowHeight(28);
-        historyCard.add(sectionTitle("거래 내역"), BorderLayout.NORTH);
-        historyCard.add(new JScrollPane(transactionTable), BorderLayout.CENTER);
-
-        panel.add(actionCard, BorderLayout.WEST);
-        panel.add(historyCard, BorderLayout.CENTER);
-        return panel;
-    }
-
-    private JPanel createProfilePanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setOpaque(false);
-
-        JPanel card = createCard();
-        card.setPreferredSize(new Dimension(430, 0));
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-
-        profileLabel = new JLabel();
-        profileLabel.setForeground(MUTED);
-        profileLabel.setFont(new Font("Dialog", Font.PLAIN, 13));
-
-        JTextField passwordField = createTextField();
-        JTextField nameField = createTextField();
-        JTextField phoneField = createTextField();
-
-        JButton passwordButton = createSecondaryButton("비밀번호 변경");
-        JButton nameButton = createSecondaryButton("이름 변경");
-        JButton phoneButton = createSecondaryButton("전화번호 변경");
-
-        card.add(sectionTitle("내 정보"));
-        card.add(Box.createVerticalStrut(10));
-        card.add(profileLabel);
-        card.add(Box.createVerticalStrut(20));
-        card.add(fieldBlock("새 비밀번호", passwordField));
-        card.add(Box.createVerticalStrut(8));
-        card.add(passwordButton);
-        card.add(Box.createVerticalStrut(16));
-        card.add(fieldBlock("새 이름", nameField));
-        card.add(Box.createVerticalStrut(8));
-        card.add(nameButton);
-        card.add(Box.createVerticalStrut(16));
-        card.add(fieldBlock("새 전화번호", phoneField));
-        card.add(Box.createVerticalStrut(8));
-        card.add(phoneButton);
-
-        passwordButton.addActionListener(e -> {
-            String password = passwordField.getText().trim();
-            if (password.isEmpty()) {
-                showWarning("새 비밀번호를 입력해 주세요.");
-                return;
-            }
-            userManager.editPassword(password);
-            passwordField.setText("");
-            JOptionPane.showMessageDialog(this, "비밀번호가 변경되었습니다.");
-        });
-
-        nameButton.addActionListener(e -> {
-            String name = nameField.getText().trim();
-            if (name.isEmpty()) {
-                showWarning("새 이름을 입력해 주세요.");
-                return;
-            }
-            userManager.editName(name);
-            nameField.setText("");
-            refreshAll();
-        });
-
-        phoneButton.addActionListener(e -> {
-            String phone = phoneField.getText().trim();
-            if (phone.isEmpty()) {
-                showWarning("새 전화번호를 입력해 주세요.");
-                return;
-            }
-            userManager.editPhoneNumber(phone);
-            phoneField.setText("");
-            refreshAll();
-        });
-
-        panel.add(card, BorderLayout.WEST);
-        return panel;
-    }
-
-    private void runAmountTransaction(JTextField amountField, AccountTransaction transaction, String failureMessage) {
-        Account account = selectedSourceAccount();
-        int amount = parseInt(amountField.getText(), "금액");
-
-        if (account == null) {
-            showWarning("거래할 계좌를 선택해 주세요.");
-            return;
-        }
-        if (amount <= 0) {
-            return;
-        }
-
-        if (transaction.execute(account, amount)) {
-            amountField.setText("");
-            refreshAll();
+    private void setNavActive(JButton btn, boolean active) {
+        if (active) {
+            btn.setBackground(SELECTED_BG);
+            btn.setForeground(PRIMARY);
+            btn.setFont(new Font("Dialog", Font.BOLD, 13));
+            btn.setOpaque(true);
         } else {
-            showWarning(failureMessage);
+            btn.setBackground(SIDEBAR_BG);
+            btn.setForeground(MUTED);
+            btn.setFont(new Font("Dialog", Font.PLAIN, 13));
+            btn.setOpaque(true);
         }
     }
 
-    private void refreshAll() {
-        refreshUser();
-        refreshAccounts();
-        refreshAccountCombos(true);
-        refreshTransactions();
+    private void switchPage(String page) {
+        setNavActive(btnAccount, page.equals("account"));
+        setNavActive(btnTransaction, page.equals("transaction"));
+        setNavActive(btnProfile, page.equals("profile"));
+
+        if (page.equals("transaction")) refreshCombos();
+        if (page.equals("profile")) refreshProfile();
+
+        cardLayout.show(contentPanel, page);
     }
 
-    private void refreshUser() {
-        User user = userManager.getCurrentUser();
-        if (user == null) {
-            userTitleLabel.setText("Java Bank");
-            profileLabel.setText("로그인 정보가 없습니다.");
-            return;
-        }
+    // ── 계좌 목록 패널 ──────────────────────────────────────
+    private JPanel buildAccountListPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(new EmptyBorder(24, 24, 24, 24));
+        panel.setBackground(Color.WHITE);
 
-        userTitleLabel.setText(user.getName() + "님, 안녕하세요");
-        profileLabel.setText(String.format(
-                "<html>아이디: %s<br>이름: %s<br>전화번호: %s</html>",
-                user.getUserId(),
-                user.getName(),
-                user.getPhoneNumber()
+        // 헤더
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        header.setBorder(new EmptyBorder(0, 0, 16, 0));
+
+        JLabel title = pageTitle("계좌 관리");
+        JButton createBtn = primaryButton("+ 계좌 생성");
+        createBtn.addActionListener(e -> showCreateAccountDialog());
+
+        header.add(title, BorderLayout.WEST);
+        header.add(createBtn, BorderLayout.EAST);
+        panel.add(header, BorderLayout.NORTH);
+
+        // 테이블
+        accountTableModel = new DefaultTableModel(new Object[]{"은행", "계좌번호", "잔액"}, 0) {
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable table = new JTable(accountTableModel);
+        table.setRowHeight(32);
+        table.setFont(new Font("Dialog", Font.PLAIN, 13));
+        table.getTableHeader().setFont(new Font("Dialog", Font.BOLD, 12));
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.setShowGrid(false);
+        table.setIntercellSpacing(new Dimension(0, 0));
+        table.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    int row = table.getSelectedRow();
+                    if (row < 0) return;
+                    String accNum = (String) accountTableModel.getValueAt(row, 1);
+                    selectedAccount = am.findBankAccount(accNum);
+                    if (selectedAccount != null) {
+                        refreshDetail();
+                        cardLayout.show(contentPanel, "detail");
+                    }
+                }
+            }
+        });
+
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.setBorder(BorderFactory.createLineBorder(BORDER));
+        panel.add(scroll, BorderLayout.CENTER);
+
+        JLabel hint = new JLabel("계좌를 더블클릭하면 상세 정보를 볼 수 있습니다.");
+        hint.setFont(new Font("Dialog", Font.PLAIN, 11));
+        hint.setForeground(MUTED);
+        hint.setBorder(new EmptyBorder(8, 0, 0, 0));
+        panel.add(hint, BorderLayout.SOUTH);
+
+        return panel;
+    }
+
+    private void showCreateAccountDialog() {
+        JDialog dialog = new JDialog(this, "계좌 생성", true);
+        dialog.setSize(300, 220);
+        dialog.setLocationRelativeTo(this);
+        dialog.setResizable(false);
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBorder(new EmptyBorder(20, 24, 20, 24));
+
+        JComboBox<Bank> bankCombo = new JComboBox<>(Bank.values());
+        JTextField balanceField = new JTextField();
+
+        panel.add(fieldBlock("은행", bankCombo));
+        panel.add(Box.createVerticalStrut(10));
+        panel.add(fieldBlock("초기 금액", balanceField));
+        panel.add(Box.createVerticalStrut(16));
+
+        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        btns.setOpaque(false);
+        JButton cancel = secondaryButton("취소");
+        JButton confirm = primaryButton("생성");
+
+        cancel.addActionListener(e -> dialog.dispose());
+        confirm.addActionListener(e -> {
+            Bank bank = (Bank) bankCombo.getSelectedItem();
+            long balance;
+            try {
+                balance = Long.parseLong(balanceField.getText().trim());
+                if (balance < 0) throw new NumberFormatException();
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(dialog, "올바른 금액을 입력하세요.");
+                return;
+            }
+            String userId = um.getCurrentUser().getUserId();
+            if (am.createBankAccount(userId, bank, balance)) {
+                refreshAccounts();
+                dialog.dispose();
+            } else {
+                JOptionPane.showMessageDialog(dialog, "계좌 생성에 실패했습니다.");
+            }
+        });
+
+        btns.add(cancel);
+        btns.add(confirm);
+        panel.add(btns);
+
+        dialog.setContentPane(panel);
+        dialog.setVisible(true);
+    }
+
+    // ── 계좌 상세 패널 ──────────────────────────────────────
+    private JPanel buildAccountDetailPanel() {
+        JPanel panel = new JPanel(new BorderLayout(0, 16));
+        panel.setBorder(new EmptyBorder(24, 24, 24, 24));
+        panel.setBackground(Color.WHITE);
+
+        // 헤더
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        header.setBorder(new EmptyBorder(0, 0, 16, 0));
+
+        JButton backBtn = secondaryButton("← 뒤로");
+        backBtn.addActionListener(e -> cardLayout.show(contentPanel, "account"));
+
+        JButton deleteBtn = new JButton("계좌 삭제");
+        deleteBtn.setFont(new Font("Dialog", Font.BOLD, 13));
+        deleteBtn.setForeground(new Color(163, 45, 45));
+        deleteBtn.setBackground(new Color(252, 235, 235));
+        deleteBtn.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(240, 149, 149)),
+            new EmptyBorder(6, 14, 6, 14)
         ));
+        deleteBtn.setFocusPainted(false);
+        deleteBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        deleteBtn.addActionListener(e -> {
+            if (selectedAccount == null) return;
+            int res = JOptionPane.showConfirmDialog(this, "계좌를 삭제할까요?", "계좌 삭제", JOptionPane.YES_NO_OPTION);
+            if (res == JOptionPane.YES_OPTION) {
+                am.deleteBankAccount(selectedAccount.getAccountNumber());
+                selectedAccount = null;
+                refreshAccounts();
+                cardLayout.show(contentPanel, "account");
+            }
+        });
+
+        JPanel headerRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        headerRight.setOpaque(false);
+        headerRight.add(deleteBtn);
+
+        header.add(backBtn, BorderLayout.WEST);
+        header.add(headerRight, BorderLayout.EAST);
+        panel.add(header, BorderLayout.NORTH);
+
+        // 계좌 정보 카드
+        JPanel infoCard = new JPanel(new GridLayout(3, 2, 0, 8));
+        infoCard.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER),
+            new EmptyBorder(16, 20, 16, 20)
+        ));
+        infoCard.setBackground(new Color(248, 250, 252));
+
+        detailBankLabel   = infoLabel("");
+        detailNumberLabel = infoLabel("");
+        detailBalanceLabel = infoLabel("");
+        detailBalanceLabel.setFont(new Font("Dialog", Font.BOLD, 15));
+        detailBalanceLabel.setForeground(PRIMARY);
+
+        infoCard.add(muted("은행"));      infoCard.add(detailBankLabel);
+        infoCard.add(muted("계좌번호"));   infoCard.add(detailNumberLabel);
+        infoCard.add(muted("잔액"));      infoCard.add(detailBalanceLabel);
+
+        JPanel northPanel = new JPanel(new BorderLayout(0, 12));
+        northPanel.setOpaque(false);
+        northPanel.add(header, BorderLayout.NORTH);
+        northPanel.add(infoCard, BorderLayout.CENTER);
+        panel.add(northPanel, BorderLayout.NORTH);
+
+        // 거래내역 테이블
+        txTableModel = new DefaultTableModel(new Object[]{"일시", "종류", "금액", "잔액", "메모"}, 0) {
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable txTable = new JTable(txTableModel);
+        txTable.setRowHeight(28);
+        txTable.setFont(new Font("Dialog", Font.PLAIN, 12));
+        txTable.getTableHeader().setFont(new Font("Dialog", Font.BOLD, 12));
+        txTable.setShowGrid(false);
+
+        JPanel txPanel = new JPanel(new BorderLayout(0, 8));
+        txPanel.setOpaque(false);
+        txPanel.add(sectionTitle("거래 내역"), BorderLayout.NORTH);
+        txPanel.add(new JScrollPane(txTable), BorderLayout.CENTER);
+        panel.add(txPanel, BorderLayout.CENTER);
+
+        return panel;
     }
 
-    private void refreshAccounts() {
-        accountTableModel.setRowCount(0);
-        for (Account account : currentUserAccounts()) {
-            accountTableModel.addRow(new Object[]{
-                    account.getBank(),
-                    account.getAccountNumber(),
-                    formatMoney(account.getBalance())
+    private void refreshDetail() {
+        if (selectedAccount == null) return;
+        detailBankLabel.setText(selectedAccount.getBank().name());
+        detailNumberLabel.setText(selectedAccount.getAccountNumber());
+        detailBalanceLabel.setText(String.format("%,d원", selectedAccount.getBalance()));
+ 
+        txTableModel.setRowCount(0);
+        for (Transaction tx : tm.getTransactionList(selectedAccount.getAccountNumber())) {
+            // 출금이면 fromAccount가 내 계좌일 때만 표시
+            if (tx.getType().equals("출금") && !selectedAccount.getAccountNumber().equals(tx.getFromAccountNumber())) continue;
+            // 입금이면 toAccount가 내 계좌일 때만 표시
+            if (tx.getType().equals("입금") && !selectedAccount.getAccountNumber().equals(tx.getToAccountNumber())) continue;
+
+            txTableModel.addRow(new Object[]{
+                tx.getDate(), tx.getType(),
+                String.format("%,d원", tx.getAmount()),
+                String.format("%,d원", tx.getAfterBalance()),
+                tx.getMemo()
             });
         }
     }
 
-    private void refreshAccountCombos(boolean rebuildSource) {
-        Account selected = selectedSourceAccount();
+    // ── 거래 패널 ───────────────────────────────────────────
+    private JPanel buildTransactionPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(new EmptyBorder(24, 24, 24, 24));
+        panel.setBackground(Color.WHITE);
 
-        if (rebuildSource) {
-            DefaultComboBoxModel<AccountItem> model = new DefaultComboBoxModel<>();
-            for (Account account : currentUserAccounts()) {
-                model.addElement(new AccountItem(account));
+        panel.add(pageTitle("거래"), BorderLayout.NORTH);
+
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.setBorder(new EmptyBorder(12, 0, 0, 0));
+        tabs.setFont(new Font("Dialog", Font.PLAIN, 13));
+
+        tabs.addTab("입금", buildDepositTab());
+        tabs.addTab("출금", buildWithdrawTab());
+        tabs.addTab("송금", buildTransferTab());
+        tabs.addTab("이자", buildInterestTab());
+
+        panel.add(tabs, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel buildDepositTab() {
+        JPanel panel = tabPanel();
+        depositCombo = accountCombo();
+        JTextField amountField = new JTextField();
+        JButton btn = primaryButton("입금");
+
+        btn.addActionListener(e -> {
+            AccountItem item = (AccountItem) depositCombo.getSelectedItem();
+            if (item == null) { showWarning("계좌를 선택하세요."); return; }
+            int amount = parseAmount(amountField.getText());
+            if (amount <= 0) return;
+            if (tm.deposit(item.account, amount)) {
+                amountField.setText("");
+                refreshAll();
+                JOptionPane.showMessageDialog(this, "입금이 완료되었습니다.");
             }
-            sourceAccountCombo.setModel(model);
-            selectAccount(sourceAccountCombo, selected);
-        }
+        });
 
-        Account source = selectedSourceAccount();
-        balanceLabel.setText(source == null ? "선택된 계좌가 없습니다." : "현재 잔액: " + formatMoney(source.getBalance()));
+        panel.add(fieldBlock("계좌 선택", depositCombo));
+        panel.add(Box.createVerticalStrut(10));
+        panel.add(fieldBlock("입금 금액", amountField));
+        panel.add(Box.createVerticalStrut(16));
+        panel.add(btn);
+        return panel;
+    }
 
-        DefaultComboBoxModel<AccountItem> targetModel = new DefaultComboBoxModel<>();
-        for (Account account : accountManager.getAccountList()) {
-            if (source == null || !source.getAccountNumber().equals(account.getAccountNumber())) {
-                targetModel.addElement(new AccountItem(account));
+    private JPanel buildWithdrawTab() {
+        JPanel panel = tabPanel();
+        withdrawCombo = accountCombo();
+        JTextField amountField = new JTextField();
+        JButton btn = primaryButton("출금");
+
+        btn.addActionListener(e -> {
+            AccountItem item = (AccountItem) withdrawCombo.getSelectedItem();
+            if (item == null) { showWarning("계좌를 선택하세요."); return; }
+            int amount = parseAmount(amountField.getText());
+            if (amount <= 0) return;
+            if (tm.withdraw(item.account, amount)) {
+                amountField.setText("");
+                refreshAll();
+                JOptionPane.showMessageDialog(this, "출금이 완료되었습니다.");
             }
-        }
-        targetAccountCombo.setModel(targetModel);
+        });
+
+        panel.add(fieldBlock("계좌 선택", withdrawCombo));
+        panel.add(Box.createVerticalStrut(10));
+        panel.add(fieldBlock("출금 금액", amountField));
+        panel.add(Box.createVerticalStrut(16));
+        panel.add(btn);
+        return panel;
     }
 
-    private void refreshTransactions() {
-        transactionTableModel.setRowCount(0);
-        if (transactionManager.getTransactionList().isEmpty()) {
-            transactionTableModel.addRow(new Object[]{"거래 내역이 없습니다."});
-            return;
-        }
+    private JPanel buildTransferTab() {
+        JPanel panel = tabPanel();
+        transferFromCombo = accountCombo();
+        transferToCombo   = accountCombo();
+        JTextField amountField = new JTextField();
+        JTextField memoField   = new JTextField();
+        JButton btn = primaryButton("송금");
 
-        for (Transaction transaction : transactionManager.getTransactionList()) {
-            transactionTableModel.addRow(new Object[]{transaction.toString()});
-        }
-    }
-
-    private ArrayList<Account> currentUserAccounts() {
-        ArrayList<Account> accounts = new ArrayList<>();
-        User user = userManager.getCurrentUser();
-        if (user == null) {
-            return accounts;
-        }
-
-        for (Account account : accountManager.getAccountList()) {
-            if (user.getUserId().equals(account.getUserId())) {
-                accounts.add(account);
+        transferFromCombo.addActionListener(e -> {
+            AccountItem from = (AccountItem) transferFromCombo.getSelectedItem();
+            transferToCombo.removeAllItems();
+            for (Account acc : am.getAccountList()) {
+                if (from == null || !acc.getAccountNumber().equals(from.account.getAccountNumber())) {
+                    transferToCombo.addItem(new AccountItem(acc));
+                }
             }
-        }
-        return accounts;
-    }
-
-    private Account selectedSourceAccount() {
-        if (sourceAccountCombo == null) {
-            return null;
-        }
-        AccountItem item = (AccountItem) sourceAccountCombo.getSelectedItem();
-        return item == null ? null : item.account;
-    }
-
-    private Account selectedTargetAccount() {
-        if (targetAccountCombo == null) {
-            return null;
-        }
-        AccountItem item = (AccountItem) targetAccountCombo.getSelectedItem();
-        return item == null ? null : item.account;
-    }
-
-    private void selectAccount(JComboBox<AccountItem> comboBox, Account account) {
-        if (account == null) {
-            return;
-        }
-
-        for (int i = 0; i < comboBox.getItemCount(); i++) {
-            AccountItem item = comboBox.getItemAt(i);
-            if (item.account.getAccountNumber().equals(account.getAccountNumber())) {
-                comboBox.setSelectedIndex(i);
-                return;
+        });
+        
+        btn.addActionListener(e -> {
+            AccountItem from = (AccountItem) transferFromCombo.getSelectedItem();
+            AccountItem to   = (AccountItem) transferToCombo.getSelectedItem();
+            if (from == null || to == null) { showWarning("계좌를 선택하세요."); return; }
+            int amount = parseAmount(amountField.getText());
+            if (amount <= 0) return;
+            if (tm.transfer(from.account, to.account, amount, memoField.getText())) {
+                amountField.setText("");
+                memoField.setText("");
+                refreshAll();
+                JOptionPane.showMessageDialog(this, "송금이 완료되었습니다.");
             }
-        }
+        });
+
+        panel.add(fieldBlock("보내는 계좌", transferFromCombo));
+        panel.add(Box.createVerticalStrut(10));
+        panel.add(fieldBlock("받는 계좌", transferToCombo));
+        panel.add(Box.createVerticalStrut(10));
+        panel.add(fieldBlock("금액", amountField));
+        panel.add(Box.createVerticalStrut(10));
+        panel.add(fieldBlock("메모 (선택)", memoField));
+        panel.add(Box.createVerticalStrut(16));
+        panel.add(btn);
+        return panel;
     }
 
-    private Bank[] visibleBanks() {
-        ArrayList<Bank> banks = new ArrayList<>();
-        for (Bank bank : Bank.values()) {
-            if (bank != Bank.NULL) {
-                banks.add(bank);
-            }
-        }
-        return banks.toArray(new Bank[0]);
+    private JPanel buildInterestTab() {
+        JPanel panel = tabPanel();
+        interestCombo = accountCombo();
+        JTextField yearField = new JTextField();
+        JButton btn = primaryButton("이자 적용");
+
+        btn.addActionListener(e -> {
+            AccountItem item = (AccountItem) interestCombo.getSelectedItem();
+            if (item == null) { showWarning("계좌를 선택하세요."); return; }
+            int years;
+            try { years = Integer.parseInt(yearField.getText().trim()); }
+            catch (NumberFormatException ex) { showWarning("보유 기간을 숫자로 입력하세요."); return; }
+            long before = item.account.getBalance();
+            InterestCalculator.applyYearlyInterest(item.account, years);
+            long interest = item.account.getBalance() - before;
+            yearField.setText("");
+            refreshAll();
+            JOptionPane.showMessageDialog(this, String.format("이자 %,d원이 적용되었습니다.", interest));
+        });
+
+        panel.add(fieldBlock("계좌 선택", interestCombo));
+        panel.add(Box.createVerticalStrut(10));
+        panel.add(fieldBlock("보유 기간 (년)", yearField));
+        panel.add(Box.createVerticalStrut(16));
+        panel.add(btn);
+        return panel;
     }
 
-    private JPanel createCard() {
+    // ── 내 정보 패널 ────────────────────────────────────────
+    private JPanel buildProfilePanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(new EmptyBorder(24, 24, 24, 24));
+        panel.setBackground(Color.WHITE);
+
+        panel.add(pageTitle("내 정보"), BorderLayout.NORTH);
+
         JPanel card = new JPanel();
-        card.setBackground(CARD);
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(226, 232, 240)),
-                BorderFactory.createEmptyBorder(22, 24, 22, 24)
+            BorderFactory.createLineBorder(BORDER),
+            new EmptyBorder(20, 24, 20, 24)
         ));
-        return card;
-    }
+        card.setBackground(new Color(248, 250, 252));
+        card.setMaximumSize(new Dimension(400, Integer.MAX_VALUE));
 
-    private JPanel fieldBlock(String labelText, java.awt.Component field) {
-        JPanel panel = new JPanel(new BorderLayout(0, 6));
-        panel.setOpaque(false);
-        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
+        profileIdLabel    = infoLabel("");
+        profileNameLabel  = infoLabel("");
+        profilePhoneLabel = infoLabel("");
 
-        JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Dialog", Font.BOLD, 13));
-        label.setForeground(TEXT);
+        card.add(infoRow("아이디", profileIdLabel));
+        card.add(Box.createVerticalStrut(8));
+        card.add(infoRow("이름", profileNameLabel));
+        card.add(Box.createVerticalStrut(8));
+        card.add(infoRow("전화번호", profilePhoneLabel));
+        card.add(Box.createVerticalStrut(20));
 
-        panel.add(label, BorderLayout.NORTH);
-        panel.add(field, BorderLayout.CENTER);
+        JPanel btns = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        btns.setOpaque(false);
+        JButton editName  = secondaryButton("이름 변경");
+        JButton editPhone = secondaryButton("전화번호 변경");
+        JButton editPw    = secondaryButton("비밀번호 변경");
+
+        editName.addActionListener(e -> showEditDialog("이름 변경", "새 이름", false,
+            val -> { um.editName(val); refreshProfile(); }));
+        editPhone.addActionListener(e -> showEditDialog("전화번호 변경", "새 전화번호", false,
+            val -> { um.editPhoneNumber(val); refreshProfile(); }));
+        editPw.addActionListener(e -> showEditDialog("비밀번호 변경", "새 비밀번호", true,
+            val -> um.editPassword(val)));
+
+        btns.add(editName);
+        btns.add(editPhone);
+        btns.add(editPw);
+        card.add(btns);
+
+        JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        wrapper.setOpaque(false);
+        wrapper.add(card);
+        panel.add(wrapper, BorderLayout.CENTER);
+
         return panel;
     }
 
-    private JPanel buttonRow(JButton first, JButton second) {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        panel.setOpaque(false);
-        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
-        panel.add(first);
-        panel.add(second);
-        return panel;
+    private void showEditDialog(String title, String label, boolean isPassword, java.util.function.Consumer<String> onConfirm) {
+        JDialog dialog = new JDialog(this, title, true);
+        dialog.setSize(280, 160);
+        dialog.setLocationRelativeTo(this);
+        dialog.setResizable(false);
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBorder(new EmptyBorder(20, 24, 20, 24));
+
+        JTextField field = isPassword ? new JPasswordField() : new JTextField();
+        panel.add(fieldBlock(label, field));
+        panel.add(Box.createVerticalStrut(16));
+
+        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        btns.setOpaque(false);
+        JButton cancel  = secondaryButton("취소");
+        JButton confirm = primaryButton("변경");
+
+        cancel.addActionListener(e -> dialog.dispose());
+        confirm.addActionListener(e -> {
+            String val = field.getText().trim();
+            if (val.isEmpty()) { JOptionPane.showMessageDialog(dialog, label + "을 입력하세요."); return; }
+            onConfirm.accept(val);
+            dialog.dispose();
+            JOptionPane.showMessageDialog(this, "변경되었습니다.");
+        });
+
+        btns.add(cancel);
+        btns.add(confirm);
+        panel.add(btns);
+
+        dialog.setContentPane(panel);
+        dialog.setVisible(true);
+    }
+
+    // ── 새로고침 ────────────────────────────────────────────
+    private void refreshAll() {
+        refreshAccounts();
+        refreshCombos();
+        if (selectedAccount != null) refreshDetail();
+    }
+
+    private void refreshAccounts() {
+        if (accountTableModel == null) return;
+        accountTableModel.setRowCount(0);
+        User user = um.getCurrentUser();
+        if (user == null) return;
+        for (Account acc : am.getAccountList()) {
+            if (acc.getUserId().equals(user.getUserId())) {
+                accountTableModel.addRow(new Object[]{
+                    acc.getBank().name(),
+                    acc.getAccountNumber(),
+                    String.format("%,d원", acc.getBalance())
+                });
+            }
+        }
+    }
+
+    private void refreshCombos() {
+        ArrayList<Account> userAccounts = new ArrayList<>();
+        User user = um.getCurrentUser();
+        if (user != null) {
+            for (Account acc : am.getAccountList()) {
+                if (acc.getUserId().equals(user.getUserId())) userAccounts.add(acc);
+            }
+        }
+
+        refillCombo(depositCombo, userAccounts);
+        refillCombo(withdrawCombo, userAccounts);
+        refillCombo(transferFromCombo, userAccounts);
+        refillCombo(interestCombo, userAccounts);
+    }
+
+    private void refillCombo(JComboBox<AccountItem> combo, java.util.List<Account> list) {
+        if (combo == null) return;
+        combo.removeAllItems();
+        for (Account acc : list) combo.addItem(new AccountItem(acc));
+    }
+
+    private void refreshProfile() {
+        User user = um.getCurrentUser();
+        if (user == null) return;
+        profileIdLabel.setText(user.getUserId());
+        profileNameLabel.setText(user.getName());
+        profilePhoneLabel.setText(user.getPhoneNumber());
+    }
+
+    // ── 유틸 ────────────────────────────────────────────────
+    private JComboBox<AccountItem> accountCombo() {
+        JComboBox<AccountItem> combo = new JComboBox<>();
+        combo.setFont(new Font("Dialog", Font.PLAIN, 13));
+        combo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+        return combo;
+    }
+
+    private JPanel tabPanel() {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setBorder(new EmptyBorder(20, 4, 20, 4));
+        p.setOpaque(false);
+        return p;
+    }
+
+    private JPanel fieldBlock(String labelText, Component field) {
+        JPanel p = new JPanel(new BorderLayout(0, 4));
+        p.setOpaque(false);
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
+        JLabel lbl = new JLabel(labelText);
+        lbl.setFont(new Font("Dialog", Font.BOLD, 12));
+        lbl.setForeground(MUTED);
+        p.add(lbl, BorderLayout.NORTH);
+        p.add(field, BorderLayout.CENTER);
+        return p;
+    }
+
+    private JPanel infoRow(String labelText, JLabel valueLabel) {
+        JPanel row = new JPanel(new BorderLayout());
+        row.setOpaque(false);
+        JLabel lbl = new JLabel(labelText);
+        lbl.setFont(new Font("Dialog", Font.PLAIN, 13));
+        lbl.setForeground(MUTED);
+        lbl.setPreferredSize(new Dimension(80, 0));
+        row.add(lbl, BorderLayout.WEST);
+        row.add(valueLabel, BorderLayout.CENTER);
+        return row;
+    }
+
+    private JLabel infoLabel(String text) {
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("Dialog", Font.BOLD, 13));
+        lbl.setForeground(TEXT);
+        return lbl;
+    }
+
+    private JLabel muted(String text) {
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("Dialog", Font.PLAIN, 13));
+        lbl.setForeground(MUTED);
+        return lbl;
+    }
+
+    private JLabel pageTitle(String text) {
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("Dialog", Font.BOLD, 20));
+        lbl.setForeground(TEXT);
+        lbl.setBorder(new EmptyBorder(0, 0, 16, 0));
+        return lbl;
     }
 
     private JLabel sectionTitle(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(new Font("Dialog", Font.BOLD, 18));
-        label.setForeground(TEXT);
-        return label;
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("Dialog", Font.BOLD, 14));
+        lbl.setForeground(TEXT);
+        return lbl;
     }
 
-    private JTextField createTextField() {
-        JTextField field = new JTextField();
-        field.setPreferredSize(new Dimension(190, 34));
-        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(203, 213, 225)),
-                BorderFactory.createEmptyBorder(6, 10, 6, 10)
+    private JButton primaryButton(String text) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Dialog", Font.BOLD, 13));
+        btn.setBackground(PRIMARY);
+        btn.setForeground(Color.WHITE);
+        btn.setFocusPainted(false);
+        btn.setBorder(new EmptyBorder(8, 16, 8, 16));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setOpaque(true);
+        return btn;
+    }
+
+    private JButton secondaryButton(String text) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Dialog", Font.PLAIN, 13));
+        btn.setBackground(Color.WHITE);
+        btn.setForeground(TEXT);
+        btn.setFocusPainted(false);
+        btn.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER),
+            new EmptyBorder(6, 14, 6, 14)
         ));
-        return field;
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setOpaque(true);
+        return btn;
     }
 
-    private JButton createPrimaryButton(String text) {
-        JButton button = new JButton(text);
-        button.setPreferredSize(new Dimension(132, 38));
-        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
-        button.setBackground(PRIMARY);
-        button.setForeground(Color.WHITE);
-        styleButton(button);
-        return button;
-    }
-
-    private JButton createSecondaryButton(String text) {
-        JButton button = new JButton(text);
-        button.setPreferredSize(new Dimension(132, 38));
-        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
-        button.setBackground(Color.WHITE);
-        button.setForeground(TEXT);
-        button.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(203, 213, 225)),
-                BorderFactory.createEmptyBorder(8, 16, 8, 16)
-        ));
-        styleButton(button);
-        return button;
-    }
-
-    private void styleButton(JButton button) {
-        button.setFocusPainted(false);
-        button.setFont(new Font("Dialog", Font.BOLD, 13));
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-    }
-
-    private int parseInt(String text, String label) {
-        long value = parseLong(text, label);
-        if (value > Integer.MAX_VALUE) {
-            showWarning(label + "이 너무 큽니다.");
-            return -1;
-        }
-        return (int) value;
-    }
-
-    private long parseLong(String text, String label) {
-        String normalized = text.trim().replace(",", "");
-        if (normalized.isEmpty()) {
-            showWarning(label + "을 입력해 주세요.");
-            return -1;
-        }
-
+    private int parseAmount(String text) {
         try {
-            long value = Long.parseLong(normalized);
-            if (value < 0) {
-                showWarning(label + "은 0 이상이어야 합니다.");
-                return -1;
-            }
-            return value;
+            int val = Integer.parseInt(text.trim().replace(",", ""));
+            if (val <= 0) { showWarning("금액은 1원 이상이어야 합니다."); return -1; }
+            return val;
         } catch (NumberFormatException e) {
-            showWarning(label + "은 숫자로 입력해 주세요.");
+            showWarning("금액을 숫자로 입력하세요.");
             return -1;
         }
     }
 
-    private String formatMoney(long amount) {
-        return String.format("%,d원", amount);
-    }
-
-    private void showWarning(String message) {
-        JOptionPane.showMessageDialog(this, message, "확인 필요", JOptionPane.WARNING_MESSAGE);
+    private void showWarning(String msg) {
+        JOptionPane.showMessageDialog(this, msg, "확인 필요", JOptionPane.WARNING_MESSAGE);
     }
 
     private static class AccountItem {
-        private final Account account;
-
-        AccountItem(Account account) {
-            this.account = account;
-        }
-
-        @Override
+        final Account account;
+        AccountItem(Account account) { this.account = account; }
         public String toString() {
-            return account.getBank() + " " + account.getAccountNumber() + " (" + String.format("%,d원", account.getBalance()) + ")";
+            return String.format("%s %s (%,d원)",
+                account.getBank().name(),
+                account.getAccountNumber(),
+                account.getBalance());
         }
-    }
-
-    private interface AccountTransaction {
-        boolean execute(Account account, int amount);
     }
 }
