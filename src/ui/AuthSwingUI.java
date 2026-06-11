@@ -9,7 +9,11 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.lang.reflect.InvocationTargetException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -37,6 +41,7 @@ public class AuthSwingUI {
 
     public AuthSwingUI(UserManager userManager) {
         this.userManager = userManager;
+        loadMembersFromFile();
     }
 
     public boolean run() {
@@ -119,6 +124,9 @@ public class AuthSwingUI {
         addFormRow(formPanel, 0, "아이디", idField);
         addFormRow(formPanel, 1, "비밀번호", passwordField);
 
+        PressedKeyEnter(idField, loginButton);
+        PressedKeyEnter(passwordField, loginButton);
+
         loginButton.addActionListener(e -> {
             String userId = idField.getText().trim();
             String password = new String(passwordField.getPassword()).trim();
@@ -128,7 +136,7 @@ public class AuthSwingUI {
                 return;
             }
 
-            if (userManager.login(userId, password)) {
+            if (userManager.login(userId, hashPassword(password))) {
                 loggedIn = true;
                 JOptionPane.showMessageDialog(dialog, "로그인 성공!");
                 dialog.dispose();
@@ -154,6 +162,11 @@ public class AuthSwingUI {
         addFormRow(formPanel, 2, "이름", nameField);
         addFormRow(formPanel, 3, "전화번호", phoneField);
 
+        PressedKeyEnter(idField, signUpButton);
+        PressedKeyEnter(passwordField, signUpButton);
+        PressedKeyEnter(nameField, signUpButton);
+        PressedKeyEnter(phoneField, signUpButton);
+
         signUpButton.addActionListener(e -> {
             String userId = idField.getText().trim();
             String password = new String(passwordField.getPassword()).trim();
@@ -164,8 +177,22 @@ public class AuthSwingUI {
                 showWarning(dialog, "모든 항목을 입력해 주세요.");
                 return;
             }
+            if(!phoneNumber.matches("\\d+")){
+                showWarning(dialog, "전화번호는 숫자만 입력해야 합니다.");
+                return;
+            }
+            if(phoneNumber.length() != 11 || !phoneNumber.startsWith("010")){
+                showWarning(dialog, "올바른 전화번호 형식이 아닙니다.");
+                return;
+            }
+            if(password.length() < 8 || !password.matches(".*[a-zA-Z].*") || !password.matches(".*\\d.*") || !password.matches(".*[!@#$%^&*()].*")){
+                showWarning(dialog, "비밀번호는 8자 이상이어야 하며, 영어, 숫자, 특수문자를 각각 1개 이상 포함해야 합니다.");
+                return;
+             }
+            String hashedPassword = hashPassword(password);
+            if (userManager.createUserAccount(userId, hashedPassword, name, phoneNumber)) {
+                saveMemberToFile(name, userId, hashedPassword, phoneNumber);
 
-            if (userManager.createUserAccount(userId, password, name, phoneNumber)) {
                 JOptionPane.showMessageDialog(dialog, "회원가입이 완료되었습니다. 로그인해 주세요.");
                 idField.setText("");
                 passwordField.setText("");
@@ -269,4 +296,68 @@ public class AuthSwingUI {
     private boolean isBlank(String value) {
         return value == null || value.isEmpty();
     }
+
+    private void PressedKeyEnter(JTextField field, JButton button) {
+        field.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    button.doClick();
+                }
+            }
+        });
+    }
+    
+    private void saveMemberToFile(String name, String userId, String password, String phoneNumber) {
+        try (java.io.FileWriter fw = new java.io.FileWriter("members.txt", true);
+            java.io.BufferedWriter bw = new java.io.BufferedWriter(fw)) {
+
+            bw.newLine();
+            bw.write("name=" + name + ", id=" + userId + ", password=" + password + ", number=" + phoneNumber);
+
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+        }
+    }
+    private String hashPassword(String password) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = md.digest(password.getBytes());
+
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hashBytes) {
+                sb.append(String.format("%02x", b));
+            }
+
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("비밀번호 해시 처리 중 오류가 발생했습니다.", e);
+        }
+    }
+
+    private void loadMembersFromFile() {
+    java.io.File file = new java.io.File("members.txt");
+
+    if (!file.exists()) {
+        return;
+    }
+
+    try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(file))) {
+        String line;
+
+        while ((line = br.readLine()) != null) {
+            String[] parts = line.split(", ");
+
+            String name = parts[0].replace("name=", "");
+            String id = parts[1].replace("id=", "");
+            String password = parts[2].replace("password=", "");
+            String number = parts[3].replace("number=", "");
+
+            userManager.createUserAccount(id, password, name, number);
+        }
+
+    } catch (java.io.IOException e) {
+        e.printStackTrace();
+    }
+}
 }

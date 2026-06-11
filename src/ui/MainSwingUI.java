@@ -5,15 +5,16 @@ import account.AccountManager;
 import account.Bank;
 import account.User;
 import account.UserManager;
-import transaction.InterestCalculator;
-import transaction.Transaction;
-import transaction.TransactionManager;
-
+import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.util.ArrayList;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.util.ArrayList;
+import transaction.InterestCalculator;
+import transaction.Transaction;
+import transaction.TransactionManager;
 
 public class MainSwingUI extends JFrame {
 
@@ -507,7 +508,7 @@ public class MainSwingUI extends JFrame {
                 memoField.setText("");
                 refreshAll();
                 JOptionPane.showMessageDialog(this, "송금이 완료되었습니다.");
-            }
+            }else{JOptionPane.showMessageDialog(this, "잔액이 부족합니다.");}
         });
 
         panel.add(fieldBlock("보내는 계좌", transferFromCombo));
@@ -550,6 +551,7 @@ public class MainSwingUI extends JFrame {
         return panel;
     }
 
+    boolean okSign = false;
     // ── 내 정보 패널 ────────────────────────────────────────
     private JPanel buildProfilePanel() {
         JPanel panel = new JPanel(new BorderLayout());
@@ -586,10 +588,45 @@ public class MainSwingUI extends JFrame {
 
         editName.addActionListener(e -> showEditDialog("이름 변경", "새 이름", false,
             val -> { um.editName(val); refreshProfile(); }));
+
         editPhone.addActionListener(e -> showEditDialog("전화번호 변경", "새 전화번호", false,
-            val -> { um.editPhoneNumber(val); refreshProfile(); }));
+            val -> { 
+                if(!val.matches("\\d+")){
+                    JOptionPane.showMessageDialog(this, "전화번호는 숫자만 입력해야 합니다.");
+                    return;
+                }
+                if(val.length() != 11 || !val.startsWith("010")){
+                    JOptionPane.showMessageDialog(this, "올바른 전화번호 형식이 아닙니다.");
+                }else{
+                    if(val.equals(profilePhoneLabel.getText())){
+                        JOptionPane.showMessageDialog(this, "전화번호가 현재와 같습니다.");
+                    } else {
+                        okSign = true;
+                        um.editPhoneNumber(val);
+                        showComplete();
+                        refreshProfile();
+                    }
+                }
+            }));
+
         editPw.addActionListener(e -> showEditDialog("비밀번호 변경", "새 비밀번호", true,
-            val -> um.editPassword(val)));
+            val -> {
+                if(!isValidPassword(val)){
+                    JOptionPane.showMessageDialog(this, "비밀번호는 영어, 숫자, 기호를 각각 1개 이상 포함해야 합니다.");
+                    return;
+                }
+                if(val.length() < 8){
+                    JOptionPane.showMessageDialog(this, "비밀번호는 최소 8자 이상이어야 합니다.");
+                    return;
+                }
+                if(val.equals(um.getCurrentUser().getPassword())){
+                    JOptionPane.showMessageDialog(this, "비밀번호가 현재와 같습니다.");
+                } else {
+                    okSign = true;
+                    um.editPassword(val);
+                    showComplete();
+                    refreshProfile(); }
+            }));
 
         btns.add(editName);
         btns.add(editPhone);
@@ -603,10 +640,18 @@ public class MainSwingUI extends JFrame {
 
         return panel;
     }
+    private void showComplete() {
+        JOptionPane.showMessageDialog(this, "변경되었습니다.");
+    }
+
+    private boolean isValidPassword(String password) {
+        return password.matches("^(?=.*[A-Za-z])(?=.*\\d)(?=.*\\p{Punct})[A-Za-z\\d\\p{Punct}]+$");
+    }
 
     private void showEditDialog(String title, String label, boolean isPassword, java.util.function.Consumer<String> onConfirm) {
         JDialog dialog = new JDialog(this, title, true);
-        dialog.setSize(280, 160);
+        dialog.setSize(280, isPassword ? 190 : 160);
+
         dialog.setLocationRelativeTo(this);
         dialog.setResizable(false);
 
@@ -615,6 +660,9 @@ public class MainSwingUI extends JFrame {
         panel.setBorder(new EmptyBorder(20, 24, 20, 24));
 
         JTextField field = isPassword ? new JPasswordField() : new JTextField();
+        if (isPassword) {
+            panel.add(fieldBlock("영어, 숫자, 기호를 각각 1개 포함하시오", field));
+        }
         panel.add(fieldBlock(label, field));
         panel.add(Box.createVerticalStrut(16));
 
@@ -622,14 +670,24 @@ public class MainSwingUI extends JFrame {
         btns.setOpaque(false);
         JButton cancel  = secondaryButton("취소");
         JButton confirm = primaryButton("변경");
-
+        field.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    confirm.doClick();
+                }
+            }
+        });
         cancel.addActionListener(e -> dialog.dispose());
         confirm.addActionListener(e -> {
             String val = field.getText().trim();
             if (val.isEmpty()) { JOptionPane.showMessageDialog(dialog, label + "을 입력하세요."); return; }
             onConfirm.accept(val);
-            dialog.dispose();
-            JOptionPane.showMessageDialog(this, "변경되었습니다.");
+            if(okSign) {
+                dialog.dispose();
+                //JOptionPane.showMessageDialog(this, "변경되었습니다.");
+                okSign = false;
+            }
         });
 
         btns.add(cancel);
