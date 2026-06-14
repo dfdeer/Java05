@@ -258,7 +258,7 @@ public class MainSwingUI extends JFrame {
         panel.setBorder(new EmptyBorder(20, 24, 20, 24));
 
         JComboBox<Bank> bankCombo = new JComboBox<>(Bank.values());
-        JTextField balanceField = new JTextField();
+        JTextField balanceField = new JTextField("0");
 
         panel.add(fieldBlock("은행", bankCombo));
         panel.add(Box.createVerticalStrut(10));

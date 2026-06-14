@@ -5,11 +5,6 @@ public class Account {
 	private Bank bank;	// 은행 이름
 	private String accountNumber;	// 계좌 번호
 	private long balance;		// 잔액
-
-	// 초기 금액 미설정 시 0원으로 자동 설정
-	public Account(String inUserId, Bank inBankName, String inAccountNumber){
-		this(inUserId, inBankName, inAccountNumber, 0);
-	}
 	
 	public Account(String userId, Bank bank, String accountNumber, long balance){
 		this.userId = userId;

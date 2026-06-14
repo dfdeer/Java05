@@ -46,7 +46,7 @@ public class AuthSwingUI {
 
     public boolean run() {
         loggedIn = false;
-        userManager.createUserAccount("admin", "admin", "관리자", "01012345678");
+        userManager.createUserAccount("admin", hashPassword("admin"), "관리자", "01012345678");
 
         if (SwingUtilities.isEventDispatchThread()) {
             createDialog().setVisible(true);
@@ -312,8 +312,8 @@ public class AuthSwingUI {
         try (java.io.FileWriter fw = new java.io.FileWriter("members.txt", true);
             java.io.BufferedWriter bw = new java.io.BufferedWriter(fw)) {
 
-            bw.newLine();
             bw.write("name=" + name + ", id=" + userId + ", password=" + password + ", number=" + phoneNumber);
+            bw.newLine();
 
         } catch (java.io.IOException e) {
             e.printStackTrace();
